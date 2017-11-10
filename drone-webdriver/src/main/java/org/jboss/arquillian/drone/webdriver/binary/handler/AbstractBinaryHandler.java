@@ -234,6 +234,9 @@ public abstract class AbstractBinaryHandler implements BinaryHandler {
      * @throws Exception If anything bad happens
      */
     protected File prepare(File downloaded) throws Exception {
+        if(!downloaded.exists()) {
+            throw new IllegalStateException("downloaded mustn't be null");
+        }
         File extraction = BinaryFilesUtils.extract(downloaded);
         File[] files = extraction.listFiles(file -> file.isFile());
         if (files == null || files.length == 0) {
