@@ -1,6 +1,5 @@
 package org.jboss.arquillian.drone.webdriver.binary.handler;
 
-import org.jboss.arquillian.drone.webdriver.binary.BinaryFilesUtils;
 import org.jboss.arquillian.drone.webdriver.binary.downloading.source.ExternalBinarySource;
 import org.jboss.arquillian.drone.webdriver.binary.downloading.source.PhantomJSGitHubBitbucketSource;
 import org.jboss.arquillian.drone.webdriver.factory.BrowserCapabilitiesList;
@@ -10,8 +9,14 @@ import org.jboss.arquillian.drone.webdriver.utils.PlatformUtils;
 import org.openqa.selenium.remote.DesiredCapabilities;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermissions;
+import org.apache.commons.io.FileUtils;
 
 import static org.openqa.selenium.phantomjs.PhantomJSDriverService.PHANTOMJS_EXECUTABLE_PATH_PROPERTY;
+import org.rauschig.jarchivelib.Archiver;
+import org.rauschig.jarchivelib.ArchiverFactory;
 
 /**
  * A class for handling PhantomJS binaries
@@ -40,7 +45,37 @@ public class PhantomJSDriverBinaryHandler extends AbstractBinaryHandler {
      * @throws Exception If anything bad happens
      */
     protected File prepare(File downloaded) throws Exception {
-        File extraction = BinaryFilesUtils.extract(downloaded);
+//        File extraction = BinaryFilesUtils.extract(downloaded);
+//        InputStream input = new FileInputStream(downloaded);
+//        input = new GzipCompressorInputStream(input);
+//        TarArchiveInputStream tar = new TarArchiveInputStream(input);
+//        TarArchiveEntry a;
+//        while((a = tar.getNextTarEntry()) != null) {
+//            if(a.isDirectory()) {
+//                System.out.println(a.getFile().getPath());
+////                FileUtils.forceMkdir(new File("target/drone/1c947d57fce2f21ce0b43fe2ed7cd361",
+////                        a.getFile()));
+//            }else {
+//                IOUtils.copy(a., output)a.getFile()
+//            }
+//        }
+//        File archive = new File("/home/thrau/archive.tar.gz");
+        Files.setPosixFilePermissions(Paths.get("."),
+                PosixFilePermissions.fromString("rwxrwxrwx"));
+        FileUtils.forceMkdir(new File("target"));
+        Files.setPosixFilePermissions(Paths.get("target"),
+                PosixFilePermissions.fromString("rwxrwxrwx"));
+        FileUtils.forceMkdir(new File("target/drone"));
+        Files.setPosixFilePermissions(Paths.get("target/drone"),
+                PosixFilePermissions.fromString("rwxrwxrwx"));
+        File extraction = new File("target/drone/1c947d57fce2f21ce0b43fe2ed7cd361");
+        FileUtils.forceMkdir(extraction);
+        Files.setPosixFilePermissions(extraction.toPath(),
+                PosixFilePermissions.fromString("rwxrwxrwx"));
+        FileUtils.forceMkdir(extraction.getAbsoluteFile());
+
+        Archiver archiver = ArchiverFactory.createArchiver("tar", "bzip2");
+        archiver.extract(downloaded, extraction);
 
         File[] phantomJSDirectory = extraction.listFiles(file -> file.isDirectory());
         if (phantomJSDirectory == null || phantomJSDirectory.length == 0) {
@@ -51,6 +86,7 @@ public class PhantomJSDriverBinaryHandler extends AbstractBinaryHandler {
 
         File binDir = new File(phantomJSDirectory[0], "bin");
         File[] files = binDir.listFiles(file -> file.isFile() && file.getName().equals(PHANTOMJS_BINARY_NAME));
+        Files.walk(extraction.toPath()).forEach(f -> System.out.println(f.toAbsolutePath().toString()));
 
         if (files == null || files.length == 0) {
             throw new IllegalStateException(
